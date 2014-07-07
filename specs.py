@@ -35,9 +35,9 @@ def read_netlist(filename):
     f = open(filename,'r')
     content = f.read()
     f.close()
-    
+  
     G = nx.DiGraph()
-    
+
     tups = content.split('\n')
     g_tups = []
     c_tups = []
@@ -75,7 +75,7 @@ def read_netlist(filename):
                 G.add_node(x_num,name=x_name+'_dc',type='rectifier_dc')
                 G.add_node(x_num+'_ac',name=x_name+'_ac',type='rectifier_ac')
                 G.add_edge(x_num+'_ac',x_num,type='wire')
-    
+
     #create edges w/ contactor
     for i in range(0,len(c_tups)):
         line = c_tups[i].split(' ')
@@ -85,8 +85,8 @@ def read_netlist(filename):
         node_in = searchnode(c_in_port,g_tups,b_tups,t_tups,dummy_node_tups,G)
         node_out = searchnode(c_out_port,g_tups,b_tups,t_tups,dummy_node_tups,G)
         G.add_edges_from([(node_in,node_out),(node_out,node_in)],
-                         name=line[0],type=line[-1])
-    
+            name=line[0],type=line[-1])
+
     #create edges w/o contactor, i.e. wire
     #assume only TRU can have a wire connected to other components
     for i in range(0,len(t_tups)):
@@ -99,15 +99,16 @@ def read_netlist(filename):
                 for k in range(1,len(b_line)-2):
                     if t_in_port==b_line[k]:
                         G.add_edges_from([(t_out_port+'_ac',b_line[-3]),
-                                          (b_line[-3],t_out_port+'_ac')],type='wire')
+                            (b_line[-3],t_out_port+'_ac')],type='wire')
                         break
             if b_line[-1]=='DC':
                 for k in range(1,len(b_line)-2):
                     if t_out_port==b_line[k]:
                         G.add_edges_from([(t_out_port,b_line[-3]),
-                                          (b_line[-3],t_out_port)],type='wire')
+                            (b_line[-3],t_out_port)],type='wire')
                         break
     return G
+
 
 #if two nodes share one port which is not a components,
 #define this node as this shared node + '_dummy'
@@ -153,7 +154,7 @@ def init(G, uncon_comp_tups, contactor_tups):
         node_type = node_type_data[x]
         if node_type != 'dummy':
             clause = '(declare-fun ' + node_name_data[x] + ' () Bool)\n'
-            if node_type == 'generator' or node_type == 'rectifier_dc':
+            if node_type == 'generator' or node_type=='APU' or node_type == 'rectifier_dc':
                 uncon_comp_tups.append(node_name_data[x])
             declaration += clause
     for i in range(0, len(edges_number)):
@@ -258,6 +259,75 @@ def always_powered_on(e_bus_list, G):
             generator_list.append(x)
         elif type_data[x]=='APU':
             apu_list.append(x)
+    e_bus_num = []
+    for i in range(0, len(e_bus_list)):
+        for j in range(0, len(nodes_number)):
+            x = nodes_number[j]
+            if node_name_data[x] == e_bus_list[i]:
+                e_bus_num.append(x)
+                break
+    #check if there's invalid input component       
+        if j == len(nodes_number):
+            print 'Error: Component ' + e_bus_list[i] + ' Not Found'
+            exit()
+    specs_assert = ''
+    for i in range(0,len(e_bus_num)):
+        bus_name = node_name_data[e_bus_num[i]]
+        clause = '(assert (= ' + bus_name + '(or '
+        for j in range(0,len(generator_list)):
+            tups = list(nx.all_simple_paths(G,generator_list[j],e_bus_num[i]))  
+            for k in range(0,len(tups)):
+                #add nodes along the path to the clause
+                #add edges that have contactor to the clause
+                clause += '(and'
+                one_path = tups[k]
+                for x in range(0,len(one_path)-1):
+                    if node_type_data[one_path[x]]!='dummy':
+                        clause += ' ' + node_name_data[one_path[x]]
+                    if edge_type_data[(one_path[x],one_path[x+1])]=='contactor':
+                        clause += ' ' + edge_name_data[(one_path[x],one_path[x+1])]
+                clause += ')'
+        if len(apu_list) != 0:
+            for l in range(0,len(apu_list)):
+                tups = list(nx.all_simple_paths(G,apu_list[l],e_bus_num[i]))    
+                for k in range(0,len(tups)):
+                    #add nodes along the path to the clause
+                    #add edges that have contactor to the clause
+                    clause += '(and'
+                    one_path = tups[k]
+                    for x in range(0,len(one_path)-1):
+                        if node_type_data[one_path[x]]!='dummy':
+                            clause += ' ' + node_name_data[one_path[x]]
+                        if edge_type_data[(one_path[x],one_path[x+1])]=='contactor':
+                            clause += ' ' + edge_name_data[(one_path[x],one_path[x+1])]
+                    clause += ')'       
+        clause += ')))\n'
+        specs_assert += clause
+    clause = '(assert (and'
+    for i in range(0, len(e_bus_num)):
+        bus_name = node_name_data[e_bus_num[i]]
+        clause += ' ' + bus_name
+    clause += '))\n'
+    specs_assert += clause
+    return specs_assert
+
+#specify that the bus can only be powered on by a list of 
+#generators or APUs
+def always_powered_on(e_bus_list, G):
+    nodes_number = G.nodes()
+    edge_type_data = nx.get_edge_attributes(G,'type')
+    node_name_data = nx.get_node_attributes(G,'name')
+    node_type_data = nx.get_node_attributes(G,'type')
+    edge_name_data = nx.get_edge_attributes(G,'name')
+    type_data = nx.get_node_attributes(G,'type')
+    generator_list = []
+    apu_list = []
+    for i in range(0,nx.number_of_nodes(G)):
+        x = nodes_number[i]
+        if type_data[x]=='generator':
+            generator_list.append(x)
+        elif type_data[x]=='APU':
+            apu_list.append(x)
     ac_bus_num = []
     dc_bus_num = []
     for i in range(0, len(e_bus_list)):
@@ -341,49 +411,6 @@ def always_powered_on(e_bus_list, G):
     clause += '))\n'
     specs_assert += clause
     return specs_assert
-
-#specify that the bus can only be powered on by a list of 
-#generators or APUs
-def powered_on_by(bus_name, g_list, G):
-    nodes_number = G.nodes()
-    edge_type_data = nx.get_edge_attributes(G,'type')
-    node_name_data = nx.get_node_attributes(G,'name')
-    node_type_data = nx.get_node_attributes(G,'type')
-    edge_name_data = nx.get_edge_attributes(G,'name')
-    for i in range(0, len(nodes_number)):
-        x = nodes_number[i]
-        if node_name_data[x] == bus_name:
-            bus_num = x
-    if i == len(nodes_number):
-        print 'Error: ' + bus_name + ' Not Found'
-        exit()
-    g_num = []
-    for i in range(0, len(g_list)):
-        for j in range(0, len(nodes_number)):
-            x = nodes_number[j]
-            if node_name_data[x] == g_list[i]:
-                g_num.append(x)
-                break
-        if j == len(nodes_number):
-            print 'Error: ' + g_list[i] +' Not Found'
-            exit()
-    clause = '(assert (= ' + bus_name + '(or '
-    for i in range(0,len(g_num)):
-        tups = list(nx.all_simple_paths(G,g_num[i],bus_num))    
-        for j in range(0,len(tups)):
-            #add nodes along the path to the clause
-            #add edges that have contactor to the clause
-            clause += '(and'
-            one_path = tups[j]
-            for x in range(0,len(one_path)-1):
-                if node_type_data[one_path[x]]!='dummy':
-                    clause += ' ' + node_name_data[one_path[x]]
-                if edge_type_data[(one_path[x],one_path[x+1])]=='contactor':
-                    clause += ' ' + edge_name_data[(one_path[x],one_path[x+1])]
-            clause += ')'
-            #path_list.append(tups[k])
-    clause += ')))\n'
-    return clause
 
 #at least one generator or APU is healthy
 def generator_healthy(G):
