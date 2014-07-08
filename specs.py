@@ -59,7 +59,7 @@ def read_netlist(filename):
             x_num = x[-2]
             #if is bus
             if x_name[0]=='B':
-                x_type = x[-2]+'_'+x[-1]
+                x_type = x[-2]
                 x_num = x[-3]
                 b_tups.append(line)
             elif x_name[0]=='C':
@@ -243,7 +243,7 @@ def no_paralleling_set(name_tups, G):
             specs_assert += clause
     return specs_assert
 
-
+#essential buses must be powered on at all time
 def always_powered_on(e_bus_list, G):
     nodes_number = G.nodes()
     edge_type_data = nx.get_edge_attributes(G,'type')
@@ -307,107 +307,6 @@ def always_powered_on(e_bus_list, G):
     for i in range(0, len(e_bus_num)):
         bus_name = node_name_data[e_bus_num[i]]
         clause += ' ' + bus_name
-    clause += '))\n'
-    specs_assert += clause
-    return specs_assert
-
-#specify that the bus can only be powered on by a list of 
-#generators or APUs
-def always_powered_on(e_bus_list, G):
-    nodes_number = G.nodes()
-    edge_type_data = nx.get_edge_attributes(G,'type')
-    node_name_data = nx.get_node_attributes(G,'name')
-    node_type_data = nx.get_node_attributes(G,'type')
-    edge_name_data = nx.get_edge_attributes(G,'name')
-    type_data = nx.get_node_attributes(G,'type')
-    generator_list = []
-    apu_list = []
-    for i in range(0,nx.number_of_nodes(G)):
-        x = nodes_number[i]
-        if type_data[x]=='generator':
-            generator_list.append(x)
-        elif type_data[x]=='APU':
-            apu_list.append(x)
-    ac_bus_num = []
-    dc_bus_num = []
-    for i in range(0, len(e_bus_list)):
-        for j in range(0, len(nodes_number)):
-            x = nodes_number[j]
-            if node_name_data[x] == e_bus_list[i]:
-                if node_type_data[x] == 'bus_AC':
-                    ac_bus_num.append(x)
-                elif node_type_data[x] == 'bus_DC':
-                    dc_bus_num.append(x)
-                else:
-                    print 'Error: Component ' + e_bus_list[i] + 'Not Found'
-                    exit(1)
-                break
-    specs_assert = ''
-    #ac bus
-    for i in range(0,len(ac_bus_num)):
-        bus_name = node_name_data[ac_bus_num[i]]
-        clause = '(assert (= ' + bus_name
-        if len(generator_list)+len(apu_list)>1:
-            clause += '(or '
-        for j in range(0,len(generator_list)):
-            tups = list(nx.all_simple_paths(G,generator_list[j],ac_bus_num[i])) 
-            for k in range(0,len(tups)):
-                #add nodes along the path to the clause
-                #add edges that have contactor to the clause
-                clause += '(and'
-                one_path = tups[k]
-                for x in range(0,len(one_path)-1):
-                    if node_type_data[one_path[x]]!='dummy':
-                        clause += ' ' + node_name_data[one_path[x]]
-                    if edge_type_data[(one_path[x],one_path[x+1])]=='contactor':
-                        clause += ' ' + edge_name_data[(one_path[x],one_path[x+1])]
-                clause += ')'
-        if len(apu_list) != 0:
-            for l in range(0,len(apu_list)):
-                tups = list(nx.all_simple_paths(G,apu_list[l],ac_bus_num[i]))   
-                for k in range(0,len(tups)):
-                    #add nodes along the path to the clause
-                    #add edges that have contactor to the clause
-                    clause += '(and'
-                    one_path = tups[k]
-                    for x in range(0,len(one_path)-1):
-                        if node_type_data[one_path[x]]!='dummy':
-                            clause += ' ' + node_name_data[one_path[x]]
-                        if edge_type_data[(one_path[x],one_path[x+1])]=='contactor':
-                            clause += ' ' + edge_name_data[(one_path[x],one_path[x+1])]
-                    clause += ')'
-        if len(generator_list)+len(apu_list)>1:
-            clause += ')))\n'
-        else:
-            clause += '))\n'
-        specs_assert += clause
-
-    #dc bus
-    for i in range(0, len(dc_bus_num)):
-        bus_name = node_name_data[dc_bus_num[i]]
-        clause = '(assert (= ' + bus_name
-        if len(ac_bus_num)>1:
-            clause += '(or '
-        for j in range(0, len(ac_bus_num)):
-            tups = list(nx.all_simple_paths(G, ac_bus_num[j], dc_bus_num[i]))
-            for k in range(0,len(tups)):
-                clause += '(and'
-                one_path = tups[k]
-                for x in range(0,len(one_path)-1):
-                    if node_type_data[one_path[x]]!='dummy' and node_type_data[one_path[x]]!='rectifier_dc':
-                        clause += ' ' + node_name_data[one_path[x]]
-                    if edge_type_data[(one_path[x],one_path[x+1])]=='contactor':
-                        clause += ' ' + edge_name_data[(one_path[x],one_path[x+1])]
-                clause += ')'
-        if len(ac_bus_num)>1:
-            clause += ')))\n'
-        else:
-            clause += '))\n'
-        specs_assert += clause
-
-    clause = '(assert (and'
-    for i in range(0, len(e_bus_list)):
-        clause += ' ' + e_bus_list[i]
     clause += '))\n'
     specs_assert += clause
     return specs_assert
