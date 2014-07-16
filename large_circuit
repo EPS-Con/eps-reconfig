@@ -1,0 +1,65 @@
+# Netlist for a complicated problem
+
+G1 0 1 generator
+G2 0 2 generator
+A1 0 3 APU
+A2 0 4 APU
+G3 0 5 generator
+G4 0 6 generator
+C1 1 7 contactor
+C2 2 8 contactor
+C3 3 9 contactor
+C4 4 10 contactor
+C5 5 11 contactor
+C6 6 12 contactor
+B1 8 13 14 38 bus AC
+C7 14 15 contactor
+B2 9 15 16 17 18 bus AC
+C8 18 19 contactor
+B3 10 19 20 21 22 bus AC
+C9 22 23 contactor
+B4 11 23 24 25 bus AC
+C10 13 26 contactor
+T1 26 32 TRU
+C11 16 27 contactor
+T2 27 33 TRU
+C12 17 28 contactor
+C13 20 29 contactor
+C14 21 30 contactor
+T3 30 34 TRU
+C15 24 31 contactor
+T4 31 35 TRU
+B5 32 33 36 bus DC
+C18 36 37 contactor
+B6 34 35 37 bus DC
+C16 38 39 contactor
+C17 25 40 contactor
+C19 38 28 contactor
+C20 29 25 contactor
+#ACT1
+#ACT2
+B7 28 46 48 bus AC
+B8 29 47 50 bus AC
+C21 46 47 contactor
+T5 39 60 TRU
+T6 40 61 TRU
+C22 48 49 contactor
+C23 50 51 contactor
+B9 49 7 52 54 bus AC
+C25 52 53 contactor
+B10 51 53 12 56 bus AC
+C24 54 55 contactor
+C26 56 57 contactor
+T7 55 58 TRU
+T8 57 59 TRU
+B11 58 62 65 74 bus DC
+C27 74 75 contactor
+B12 59 75 67 69 bus DC
+C28 62 63 contactor
+C30 65 66 contactor
+C31 67 68 contactor
+C32 69 70 contactor
+B13 60 63 66 72 bus DC
+C34 72 73 contactor
+B14 73 68 61 70 bus DC
+.end

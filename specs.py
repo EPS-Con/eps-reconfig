@@ -25,12 +25,17 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This file includes multiple functions regarding both assertions and 
+# guarantees of a circuit, the user instruction is commented before each function
 '''
 
 import networkx as nx
 import matplotlib.pyplot as plt
 import subprocess
 
+#read in a netlist file and create a corresponding
+#network graph
 def read_netlist(filename):
     f = open(filename,'r')
     content = f.read()
@@ -109,7 +114,7 @@ def read_netlist(filename):
                         break
     return G
 
-
+#this function is only used by read_netlist
 #if two nodes share one port which is not a components,
 #define this node as this shared node + '_dummy'
 def searchnode(port,g_tups,b_tups,t_tups,dummy_node_tups,G):
@@ -138,7 +143,8 @@ def searchnode(port,g_tups,b_tups,t_tups,dummy_node_tups,G):
     dummy_node_tups.append(port+'_dummy')
     return port+'_dummy'
 
-#only call this function at the very beginning
+#only call this function at the very beginning to initialize
+#produce declarations and also fill in uncon_comp_tups and contactor_tups
 #uncon_comp_tups stands for uncontrollable compononent tups
 def init(G, uncon_comp_tups, contactor_tups):
     nodes_number = G.nodes()
@@ -312,6 +318,8 @@ def always_powered_on(e_bus_list, G):
     return specs_assert
 
 #at least one generator or APU is healthy
+#this function will give a general assumption on the condition
+#of generators
 def generator_healthy(G):
     nodes_number = G.nodes()
     node_name_data = nx.get_node_attributes(G,'name')
@@ -329,7 +337,8 @@ def generator_healthy(G):
     return clause
 
 #at least one rectifier is healthy
-#bind the ac part and dc part of a rectifier together in a sat problem
+#this function will give a general assumption on the condition
+#of generators
 def rectifier_healthy(G):
     nodes_number = G.nodes()
     node_name_data = nx.get_node_attributes(G,'name')
@@ -349,6 +358,7 @@ def rectifier_healthy(G):
     return specs_assert
 
 #equivalent the ac part and dc part of a rectifier
+#in other words, treat them as equal everywhere
 def rect_ac_dc_equ(G):
     nodes_number = G.nodes()
     node_name_data = nx.get_node_attributes(G,'name')
@@ -381,6 +391,8 @@ def setValue(component, value, G):
 
 #if a component (not a contactor) turns unhealthy, 
 #open all contactors next to it
+#include this in advance if such a component turning 
+#unhealthy would affect the functioning of circuit
 def isolate(component, G):
     nodes_number = G.nodes()
     edges_number = G.edges()
@@ -431,6 +443,7 @@ def isolate(component, G):
     return clause
 
 #APUs should only be turned on if some or all generators go unhealthy
+#Only use this function if there are any APUs
 def generator_priority(G):
     nodes_number = G.nodes()
     node_name_data = nx.get_node_attributes(G,'name')

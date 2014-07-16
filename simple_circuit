@@ -1,0 +1,17 @@
+# write-up problem
+
+G1 0 1 generator
+G2 0 3 generator
+C1 1 2 contactor
+C2 3 4 contactor
+C3 5 6 contactor
+B1 2 5 7 bus AC
+B2 4 6 9 bus AC
+T1 7 8 TRU
+T2 9 10 TRU
+C4 8 11 contactor
+C5 10 12 contactor
+B3 11 13 bus DC
+B4 12 14 bus DC
+C6 13 14 contactor
+.end
