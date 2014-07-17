@@ -7,7 +7,7 @@ Installation:
 -------------
 
 * [python](https://www.python.org/), including packages [networkx](http://networkx.github.io/) 
-* [cvc4](http://cvc4.cs.nyu.edu/web/), a sat solver
+* [cvc4](http://cvc4.cs.nyu.edu/web/), a smt solver
 
 Usage:
 ------
