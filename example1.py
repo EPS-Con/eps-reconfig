@@ -2,13 +2,11 @@
 This is an example of a simple circuit with two generators, two AC buses and two DC buses (see the netlist file simple_circuit.net)
 '''
 import networkx as nx
-import matplotlib.pyplot as plt
-import subprocess
 from specs import *
 from synthesis import *
 
 
-filename = 'simple_circuit'
+filename = 'simple_circuit.net'
 resultfile = 'result1.txt'
 G = nx.DiGraph()
 G = read_netlist(filename)

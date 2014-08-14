@@ -8,7 +8,7 @@ from specs import *
 from synthesis import *
 
 
-filename = 'medium_circuit'
+filename = 'medium_circuit.net'
 resultfile = 'result2.txt'
 G = nx.DiGraph()
 G = read_netlist(filename)
