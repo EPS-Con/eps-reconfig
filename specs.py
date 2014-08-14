@@ -31,7 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
 import networkx as nx
-import matplotlib.pyplot as plt
 import subprocess
 
 #read in a netlist file and create a corresponding
