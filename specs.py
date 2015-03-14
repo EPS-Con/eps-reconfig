@@ -320,18 +320,10 @@ def always_powered_on(e_bus_list, G):
 #this function will give a general assumption on the condition
 #of generators
 def generator_healthy(G):
-    nodes_number = G.nodes()
-    node_name_data = nx.get_node_attributes(G,'name')
-    type_data = nx.get_node_attributes(G,'type')
-    generator_list = []
-    for i in range(0,nx.number_of_nodes(G)):
-        x = nodes_number[i]
-        if type_data[x]=='generator':
-            generator_list.append(x)
+    g_list = generator_list(G)
     clause = '(assert (or'
-    for i in range(0, len(generator_list)):
-        g_name = node_name_data[generator_list[i]]
-        clause += ' ' + g_name
+    for g in g_list:
+        clause += ' ' + g
     clause += '))\n'
     return clause
 
@@ -339,41 +331,27 @@ def generator_healthy(G):
 #this function will give a general assumption on the condition
 #of generators
 def rectifier_healthy(G):
-    nodes_number = G.nodes()
-    node_name_data = nx.get_node_attributes(G,'name')
-    type_data = nx.get_node_attributes(G,'type')
-    rectifier_list = []
-    for i in range(0,nx.number_of_nodes(G)):
-        x = nodes_number[i]
-        if type_data[x]=='rectifier_dc':
-            rectifier_list.append(x)
-    specs_assert = ''
+    all_rectifiers = rectifier_list(G)
     clause = '(assert (or'
-    for i in range(0, len(rectifier_list)):
-        r_name = node_name_data[rectifier_list[i]]
-        clause += ' ' + r_name
+    for r in all_rectifiers:
+        clause += ' ' + r + '_dc'
     clause += '))\n'
-    specs_assert += clause
-    return specs_assert
+    return clause
 
 #equivalent the ac part and dc part of a rectifier
 #in other words, treat them as equal everywhere
 def rect_ac_dc_equ(G):
-    nodes_number = G.nodes()
-    node_name_data = nx.get_node_attributes(G,'name')
-    type_data = nx.get_node_attributes(G,'type')
-    rectifier_list = []
-    for i in range(0,nx.number_of_nodes(G)):
-        x = nodes_number[i]
-        if type_data[x]=='rectifier_dc':
-            rectifier_list.append(x)
+
+    all_rectifiers = rectifier_list(G)
     specs_assert = ''
-    for i in range(0, len(rectifier_list)):
+
+    for r in all_rectifiers:
         clause = '(assert (='
-        r_dc_name = node_name_data[rectifier_list[i]]
-        r_ac_name = r_dc_name.replace('_dc', '_ac')
+        r_dc_name = r + '_dc'
+        r_ac_name = r + '_ac'
         clause += ' ' + r_ac_name + ' ' + r_dc_name + '))\n'
         specs_assert += clause
+
     return specs_assert
 
 #allow user to set values of controllable components
@@ -472,6 +450,48 @@ def generator_priority(G):
     clause += ')))\n'
     return clause
 
+# For simplicity in GUI purpose
+def isolate_all(isolate_list, G):
+    specs_assert = ''
+    for elt in isolate_list:
+        specs_assert += isolate(elt, G)
+    return specs_assert
 
+# returns a tup of names of generators
+def generator_list(G):
+    nodes_number = G.nodes()
+    node_name_data = nx.get_node_attributes(G,'name')
+    type_data = nx.get_node_attributes(G,'type')
+    all_generators = []
+    for i in range(0,nx.number_of_nodes(G)):
+        x = nodes_number[i]
+        if type_data[x]=='generator':
+            all_generators.append(node_name_data[x])
+    return all_generators
 
+# returns a tup of names of buses
+def bus_list(G):
+    nodes_number = G.nodes()
+    node_name_data = nx.get_node_attributes(G,'name')
+    type_data = nx.get_node_attributes(G,'type')
+    all_buses = []
+    for i in range(0,nx.number_of_nodes(G)):
+        x = nodes_number[i]
+        if type_data[x]=='bus':
+            all_buses.append(node_name_data[x])
+    return all_buses
+
+# returns a tup of names of rectifiers
+# like T1, T2
+def rectifier_list(G):
+    nodes_number = G.nodes()
+    node_name_data = nx.get_node_attributes(G,'name')
+    type_data = nx.get_node_attributes(G,'type')
+    all_rectifiers = []
+    for i in range(0,nx.number_of_nodes(G)):
+        x = nodes_number[i]
+        if type_data[x]=='rectifier_dc':
+            dc_name = node_name_data[x]
+            all_rectifiers.append(dc_name[:-3])
+    return all_rectifiers
 
